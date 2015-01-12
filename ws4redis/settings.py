@@ -21,9 +21,28 @@ The time in seconds, items shall be persisted by the Redis datastore.
 WS4REDIS_EXPIRE = getattr(settings, 'WS4REDIS_EXPIRE', 3600)
 
 """
+Replace the connection constructor by a customized version.
+"""
+# WS4REDIS_CONNECTION_FACTORY = getattr(settings, 'WS4REDIS_CONNECTION_FACTORY', 'ws4redis.kafka_store.ConnectionFactory')
+WS4REDIS_CONNECTION_FACTORY = getattr(settings, 'WS4REDIS_CONNECTION_FACTORY', 'redis.StrictRedis')
+
+"""
+Replace the message class by a customized version.
+"""
+# WS4REDIS_MESSAGE = getattr(settings, 'WS4REDIS_MESSAGE', 'ws4redis.kafka_store.KafkaMessage')
+WS4REDIS_MESSAGE = getattr(settings, 'WS4REDIS_MESSAGE', 'ws4redis.redis_store.RedisMessage')
+
+"""
 Replace the subscriber class by a customized version.
 """
+# WS4REDIS_SUBSCRIBER = getattr(settings, 'WS4REDIS_SUBSCRIBER', 'ws4redis.kafka_subscriber.KafkaSubscriber')
 WS4REDIS_SUBSCRIBER = getattr(settings, 'WS4REDIS_SUBSCRIBER', 'ws4redis.subscriber.RedisSubscriber')
+
+"""
+Replace the publisher class by a customized version.
+"""
+# WS4REDIS_PUBLISHER = getattr(settings, 'WS4REDIS_PUBLISHER', 'ws4redis.kafka_publisher.KafkaPublisher')
+WS4REDIS_PUBLISHER = getattr(settings, 'WS4REDIS_PUBLISHER', 'ws4redis.publisher.RedisPublisher')
 
 """
 This set the magic string to recognize heartbeat messages. If set, this message string is ignored

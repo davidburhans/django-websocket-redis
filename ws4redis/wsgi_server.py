@@ -1,6 +1,5 @@
 # -*- coding: utf-8 -*-
 import sys
-from redis import StrictRedis
 import django
 if django.VERSION[:2] >= (1, 7):
     django.setup()
@@ -12,21 +11,18 @@ from django.utils.encoding import force_str
 from django.utils.importlib import import_module
 from django.utils.functional import SimpleLazyObject
 from ws4redis import settings as private_settings
-from ws4redis.redis_store import RedisMessage
+from ws4redis import Subscriber, Connection, Message
 from ws4redis.exceptions import WebSocketError, HandshakeError, UpgradeRequiredError
 
 
 class WebsocketWSGIServer(object):
-    def __init__(self, redis_connection=None):
+    def __init__(self, connection=None):
         """
-        redis_connection can be overriden by a mock object.
+        connection can be overriden by a mock object.
         """
-        comps = str(private_settings.WS4REDIS_SUBSCRIBER).split('.')
-        module = import_module('.'.join(comps[:-1]))
-        Subscriber = getattr(module, comps[-1])
         self.possible_channels = Subscriber.subscription_channels + Subscriber.publish_channels
-        self._redis_connection = redis_connection and redis_connection or StrictRedis(**private_settings.WS4REDIS_CONNECTION)
-        self.Subscriber = Subscriber
+        self._connection = connection and connection or Connection(**private_settings.WS4REDIS_CONNECTION)
+
 
     def assure_protocol_requirements(self, environ):
         if environ.get('REQUEST_METHOD') != 'GET':
@@ -64,7 +60,7 @@ class WebsocketWSGIServer(object):
     def __call__(self, environ, start_response):
         """ Hijack the main loop from the original thread and listen on events on Redis and Websockets"""
         websocket = None
-        subscriber = self.Subscriber(self._redis_connection)
+        subscriber = Subscriber(self._connection)
         try:
             self.assure_protocol_requirements(environ)
             request = WSGIRequest(environ)
@@ -89,11 +85,11 @@ class WebsocketWSGIServer(object):
                     websocket.flush()
                 for fd in ready:
                     if fd == websocket_fd:
-                        recvmsg = RedisMessage(websocket.receive())
+                        recvmsg = Message(websocket.receive())
                         if recvmsg:
                             subscriber.publish_message(recvmsg)
                     elif fd == redis_fd:
-                        sendmsg = RedisMessage(subscriber.parse_response())
+                        sendmsg = Message(subscriber.parse_response())
                         if sendmsg and (echo_message or sendmsg != recvmsg):
                             websocket.send(sendmsg)
                     else:

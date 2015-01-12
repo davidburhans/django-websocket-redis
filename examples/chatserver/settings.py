@@ -84,6 +84,21 @@ WS4REDIS_HEARTBEAT = '--heartbeat--'
 
 WS4REDIS_PREFIX = 'demo'
 
+WS4REDIS_CONNECTION_FACTORY = 'ws4redis.kafka_store.ConnectionFactory'
+
+WS4REDIS_MESSAGE = 'ws4redis.kafka_store.KafkaMessage'
+
+WS4REDIS_SUBSCRIBER = 'ws4redis.kafka_subscriber.KafkaSubscriber'
+
+WS4REDIS_PUBLISHER = 'ws4redis.kafka_publisher.KafkaPublisher'
+
+WS4REDIS_CONNECTION = {
+    'host': 'localhost',
+    'port': 49156,
+    'db': 0,
+    'password': None,
+}
+
 LOGGING = {
     'version': 1,
     'disable_existing_loggers': False,
@@ -107,3 +122,4 @@ LOGGING = {
         },
     },
 }
+

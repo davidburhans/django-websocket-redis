@@ -7,8 +7,7 @@ from django.test import LiveServerTestCase
 from django.test.client import RequestFactory
 from websocket import create_connection, WebSocketException
 from ws4redis.django_runserver import application
-from ws4redis.publisher import RedisPublisher
-from ws4redis.redis_store import RedisMessage, SELF
+from ws4redis import Publisher, Message, SELF
 
 
 class WebsocketTests(LiveServerTestCase):
@@ -22,7 +21,7 @@ class WebsocketTests(LiveServerTestCase):
     def setUp(self):
         self.facility = u'unittest'
         self.websocket_base_url = self.live_server_url.replace('http:', 'ws:', 1) + u'/ws/' + self.facility
-        self.message = RedisMessage(''.join(unichr(c) for c in range(33, 128)))
+        self.message = Message(''.join(unichr(c) for c in range(33, 128)))
         self.factory = RequestFactory()
 
     @classmethod
@@ -31,7 +30,7 @@ class WebsocketTests(LiveServerTestCase):
 
     def test_subscribe_broadcast(self):
         audience = {'broadcast': True}
-        publisher = RedisPublisher(facility=self.facility, **audience)
+        publisher = Publisher(facility=self.facility, **audience)
         publisher.publish_message(self.message, 10)
         websocket_url = self.websocket_base_url + u'?subscribe-broadcast'
         ws = create_connection(websocket_url)
@@ -58,7 +57,7 @@ class WebsocketTests(LiveServerTestCase):
         ws.send(self.message)
         ws.close()
         self.assertFalse(ws.connected)
-        publisher = RedisPublisher()
+        publisher = Publisher()
         request = self.factory.get('/chat/')
         result = publisher.fetch_message(request, self.facility, 'broadcast')
         self.assertEqual(result, self.message)
@@ -71,7 +70,7 @@ class WebsocketTests(LiveServerTestCase):
         request = self.factory.get('/chat/')
         request.user = User.objects.get(username='mary')
         audience = {'users': ['john', 'mary']}
-        publisher = RedisPublisher(request=request, facility=self.facility, **audience)
+        publisher = Publisher(request=request, facility=self.facility, **audience)
         publisher.publish_message(self.message, 10)
         websocket_url = self.websocket_base_url + u'?subscribe-user'
         header = ['Cookie: sessionid={0}'.format(self.client.cookies['sessionid'].coded_value)]
@@ -92,7 +91,7 @@ class WebsocketTests(LiveServerTestCase):
         ws.send(self.message)
         ws.close()
         self.assertFalse(ws.connected)
-        publisher = RedisPublisher()
+        publisher = Publisher()
         request = self.factory.get('/chat/')
         request.user = User.objects.get(username='john')
         result = publisher.fetch_message(request, self.facility, 'user')
@@ -107,7 +106,7 @@ class WebsocketTests(LiveServerTestCase):
         request = self.factory.get('/chat/')
         request.user = User.objects.get(username='mary')
         audience = {'groups': ['chatters']}
-        publisher = RedisPublisher(request=request, facility=self.facility, **audience)
+        publisher = Publisher(request=request, facility=self.facility, **audience)
         publisher.publish_message(self.message, 10)
         websocket_url = self.websocket_base_url + u'?subscribe-group'
         header = ['Cookie: sessionid={0}'.format(self.client.cookies['sessionid'].coded_value)]
@@ -128,7 +127,7 @@ class WebsocketTests(LiveServerTestCase):
         ws.send(self.message)
         ws.close()
         self.assertFalse(ws.connected)
-        publisher = RedisPublisher()
+        publisher = Publisher()
         request = self.factory.get('/chat/')
         request.user = User.objects.get(username='mary')
         logged_in = self.client.login(username='mary', password='secret')
@@ -146,7 +145,7 @@ class WebsocketTests(LiveServerTestCase):
         request = self.factory.get('/chat/')
         request.session = self.client.session
         audience = {'sessions': [SELF]}
-        publisher = RedisPublisher(request=request, facility=self.facility, **audience)
+        publisher = Publisher(request=request, facility=self.facility, **audience)
         publisher.publish_message(self.message, 10)
         websocket_url = self.websocket_base_url + u'?subscribe-session'
         header = ['Cookie: sessionid={0}'.format(session_key)]
@@ -170,7 +169,7 @@ class WebsocketTests(LiveServerTestCase):
         ws.send(self.message)
         ws.close()
         self.assertFalse(ws.connected)
-        publisher = RedisPublisher()
+        publisher = Publisher()
         request = self.factory.get('/chat/')
         request.session = self.client.session
         result = publisher.fetch_message(request, self.facility, 'session')
@@ -192,9 +191,9 @@ class WebsocketTests(LiveServerTestCase):
         self.assertFalse(ws.connected)
 
     def test_defining_multiple_publishers(self):
-        pub1 = RedisPublisher(facility=self.facility, broadcast=True)
+        pub1 = Publisher(facility=self.facility, broadcast=True)
         self.assertEqual(pub1._publishers, set(['ws4redis:broadcast:' + self.facility]))
-        pub2 = RedisPublisher(facility=self.facility, users=['john'])
+        pub2 = Publisher(facility=self.facility, users=['john'])
         self.assertEqual(pub2._publishers, set(['ws4redis:user:john:' + self.facility]))
 
     def test_forbidden_channel(self):
